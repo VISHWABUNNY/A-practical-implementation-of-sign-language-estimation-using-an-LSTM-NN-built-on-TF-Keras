@@ -1,0 +1,16 @@
+# Python
+venv/
+__pycache__/
+*.pyc
+.ipynb_checkpoints/
+backend/research/
+backend/model/*.h5
+
+# Node
+node_modules/
+dist/
+.env
+
+# OS
+.DS_Store
+Thumbs.db

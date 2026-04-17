@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SignFlow AI Desktop</title>
+    <link rel="stylesheet" href="style.css">
+    <!-- MediaPipe Holistic - Versioned for Stability -->
+    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/holistic@0.5.1675929862/holistic.js" crossorigin="anonymous"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils@0.4.1675466862/camera_utils.js" crossorigin="anonymous"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/drawing_utils@0.3.1675466124/drawing_utils.js" crossorigin="anonymous"></script>
+</head>
+<body>
+    <div class="app-container">
+        <!-- Main Workspace -->
+        <main class="main-workspace">
+            <div class="camera-hub">
+                <div class="video-container glass">
+                    <video id="input_video" autoplay playsinline></video>
+                    <canvas id="output_canvas"></canvas>
+                    <div id="loading_overlay">
+                        <div class="spinner"></div>
+                        <p>Initialising Camera Hub...</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Stats & Control Panel -->
+            <aside class="control-panel glass">
+                <header class="panel-header">
+                    <h1>SignFlow <span class="highlight">AI</span></h1>
+                    <div class="status-indicator">
+                        <span id="backend_status" class="dot gray"></span>
+                        <span id="status_text">Checking Backend...</span>
+                    </div>
+                </header>
+
+                <div class="inference-core">
+                    <section class="prediction-card glass">
+                        <h3>Detection</h3>
+                        <div id="gesture_result" class="result">Waiting...</div>
+                        <div class="progress-bar-container">
+                            <div id="confidence_bar" class="progress-bar" style="width: 0%"></div>
+                        </div>
+                        <div id="confidence_val" class="sub-text">0% Confidence</div>
+                    </section>
+
+                    <section class="log-panel">
+                        <h3>Inference History</h3>
+                        <ul id="inference_log">
+                            <!-- Logs will appear here -->
+                        </ul>
+                    </section>
+                </div>
+
+                <footer class="panel-footer">
+                    <div class="system-info">
+                        <span>FPS: <span id="fps_val">0</span></span>
+                        <span>LSTM Buffer: <span id="buffer_val">0</span>/30</span>
+                    </div>
+                </footer>
+            </aside>
+        </main>
+    </div>
+
+    <!-- Logic -->
+    <script src="renderer.js"></script>
+</body>
+</html>
