@@ -104,19 +104,15 @@ function Run-App {
 
 # ── COLLECT ─────────────────────────────────────────────────────────────────
 function Collect-Data {
-    param([string[]]$Signs)
-    $BackendVenv = "$RootPath\backend\venv"
-    if (-not (Test-Path $BackendVenv)) {
-        Write-Host "ERROR: Run '.\manage.ps1 setup' first." -ForegroundColor Red; return
-    }
-    $script = "$RootPath\backend\collect_data.py"
-    if ($Signs.Count -gt 0) {
-        Write-Host "Collecting data for: $Signs" -ForegroundColor Cyan
-        & "$BackendVenv\Scripts\python.exe" $script @Signs
-    } else {
-        Write-Host "Collecting data for ALL actions in config.py ..." -ForegroundColor Cyan
-        & "$BackendVenv\Scripts\python.exe" $script
-    }
+    Write-Host ""
+    Write-Host "========================================================" -ForegroundColor Cyan
+    Write-Host " DATA COLLECTION IS NOW IN THE APP!" -ForegroundColor White
+    Write-Host "========================================================" -ForegroundColor Cyan
+    Write-Host "  1. Run the app:  .\manage.ps1 run"
+    Write-Host "  2. Click '🎬 Training Studio' in the top bar."
+    Write-Host "  3. Select your sign and record directly in the UI!"
+    Write-Host "========================================================" -ForegroundColor Cyan
+    Write-Host ""
 }
 
 # ── TRAIN ────────────────────────────────────────────────────────────────────

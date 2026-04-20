@@ -22,9 +22,16 @@ const gestureList    = document.getElementById('gesture_list');
 const gpuLabel       = document.getElementById('gpu_label');
 const gpuBadge       = document.getElementById('gpu_badge');
 
-// ── FULL SIGN DICTIONARY (all 15 signs + extensible) ─────────────────────────
-// Frontend knows about all possible signs. Bars are built from what the current
-// model actually supports (fetched from backend /status endpoint).
+// Studio UI
+const studioBtn         = document.getElementById('studio_btn');
+const studioOverlay     = document.getElementById('studio_overlay');
+const studioSignSelect  = document.getElementById('studio_sign_select');
+const recordBtn         = document.getElementById('record_btn');
+const closeStudioBtn    = document.getElementById('close_studio_btn');
+const recordProgress    = document.getElementById('record_progress');
+const recordStatus      = document.getElementById('record_status');
+
+// ── COLOR PALETTE ─────────────────────────────────────────────────────────────
 const COLOR_PALETTE = [
     '#38bdf8', '#a78bfa', '#f472b6', '#4ade80',
     '#f87171', '#fbbf24', '#fb923c', '#34d399',
@@ -32,99 +39,59 @@ const COLOR_PALETTE = [
     '#fca5a5', '#fcd34d', '#6ee7b7', '#c4b5fd',
 ];
 
-const SIGN_DICT = {
-    // ── Greetings ──────────────────────────────────────────────
-    hello: {
-        display: 'Hello',
-        emoji:   '👋',
-        meaning: 'A welcoming greeting. Wave your open hand near your forehead.',
-    },
-    // ── Politeness ─────────────────────────────────────────────
-    thanks: {
-        display: 'Thank You',
-        emoji:   '🙏',
-        meaning: 'Gratitude. Flat hand from lips extends forward.',
-    },
-    // ── Emotions ───────────────────────────────────────────────
-    iloveyou: {
-        display: 'I Love You',
-        emoji:   '🤟',
-        meaning: 'The ILY hand-shape — combines I, L, and Y fingers.',
-    },
-    // ── Responses ──────────────────────────────────────────────
-    yes: {
-        display: 'Yes',
-        emoji:   '✅',
-        meaning: 'Agreement. Fist nods up and down like a head nodding.',
-    },
-    no: {
-        display: 'No',
-        emoji:   '❌',
-        meaning: 'Disagreement. Index and middle finger snap against thumb.',
-    },
-    // ── Politeness ─────────────────────────────────────────────
-    please: {
-        display: 'Please',
-        emoji:   '🤲',
-        meaning: 'Request. Flat hand rubs circular motion on chest.',
-    },
-    sorry: {
-        display: 'Sorry',
-        emoji:   '😔',
-        meaning: 'Apology. Fist rubs circular motion on chest.',
-    },
-    // ── Commands ───────────────────────────────────────────────
-    help: {
-        display: 'Help',
-        emoji:   '🆘',
-        meaning: 'Assistance needed. Thumb-up hand lifts on open palm.',
-    },
-    stop: {
-        display: 'Stop',
-        emoji:   '✋',
-        meaning: 'Halt. Edge of flat hand chops down onto open palm.',
-    },
-    // ── States ─────────────────────────────────────────────────
-    good: {
-        display: 'Good',
-        emoji:   '👍',
-        meaning: 'Positive feedback. Flat hand from chin moves outward.',
-    },
-    bad: {
-        display: 'Bad',
-        emoji:   '👎',
-        meaning: 'Negative feedback. Flat hand from chin flips downward.',
-    },
-    // ── Conversational ─────────────────────────────────────────
-    more: {
-        display: 'More',
-        emoji:   '➕',
-        meaning: 'Quantity. Fingertips of both hands tap together repeatedly.',
-    },
-    again: {
-        display: 'Again',
-        emoji:   '🔄',
-        meaning: 'Repeat. Bent hand arcs and lands on open palm.',
-    },
-    fine: {
-        display: 'Fine',
-        emoji:   '😊',
-        meaning: 'Doing well. Thumb touches chest and moves outward.',
-    },
-    name: {
-        display: 'Name',
-        emoji:   '🏷️',
-        meaning: 'Identity. Crossed index fingers tap H-handshapes together.',
-    },
+// ── CUSTOM SIGN DICTIONARY ────────────────────────────────────────────────────
+// Specific definitions for emojis/meanings. For missing words, it auto-generates.
+const SPECIFIC_SIGNS = {
+    hello:      { display: 'Hello',       emoji: '👋', meaning: 'A welcoming greeting.' },
+    thanks:     { display: 'Thank You',   emoji: '🙏', meaning: 'Gratitude.' },
+    iloveyou:   { display: 'I Love You',  emoji: '🤟', meaning: 'The ILY hand-shape.' },
+    yes:        { display: 'Yes',         emoji: '✅', meaning: 'Agreement.' },
+    no:         { display: 'No',          emoji: '❌', meaning: 'Disagreement.' },
+    please:     { display: 'Please',      emoji: '🤲', meaning: 'Request.' },
+    sorry:      { display: 'Sorry',       emoji: '😔', meaning: 'Apology.' },
+    help:       { display: 'Help',        emoji: '🆘', meaning: 'Assistance needed.' },
+    stop:       { display: 'Stop',        emoji: '✋', meaning: 'Halt.' },
+    good:       { display: 'Good',        emoji: '👍', meaning: 'Positive feedback.' },
+    bad:        { display: 'Bad',         emoji: '👎', meaning: 'Negative feedback.' },
+    home:       { display: 'Home',        emoji: '🏠', meaning: 'House or home.' },
+    eat:        { display: 'Eat / Food',  emoji: '🍔', meaning: 'Eating or food.' },
+    drink:      { display: 'Drink',       emoji: '🥤', meaning: 'Drinking or water.' },
+    bathroom:   { display: 'Bathroom',    emoji: '🚽', meaning: 'Toilet or bathroom.' },
+    time:       { display: 'Time',        emoji: '⌚', meaning: 'Clock or time.' },
+    space:      { display: 'Space',       emoji: '␣',  meaning: 'Add a space between words.' },
+    backspace:  { display: 'Backspace',   emoji: '⌫',  meaning: 'Delete last letter/word.' },
 };
+
+function getSignInfo(action) {
+    if (SPECIFIC_SIGNS[action]) return SPECIFIC_SIGNS[action];
+    
+    // Auto-generate for A-Z
+    if (action.length === 1 && action.match(/[a-z]/)) {
+        return { display: action.toUpperCase(), emoji: '🔠', meaning: 'Fingerspelling letter' };
+    }
+    
+    // Auto-generate for normal words (capitalise first letter)
+    return {
+        display: action.charAt(0).toUpperCase() + action.slice(1),
+        emoji: '💬',
+        meaning: `The ASL sign for '${action}'.`
+    };
+}
 
 // ── STATE ─────────────────────────────────────────────────────────────────────
 const BACKEND_URL  = 'http://localhost:8000';
 let sequence       = [];
 let frameCount     = 0;
 let lastFpsUpdate  = Date.now();
-let lastAddedWord  = null;
+let lastAddedAction= null;
 let currentActions = [];   // populated from backend
+let isSpellingWord = false;// tracks if we are currently building a fingerspelled word
+
+// Studio State
+let isRecordingStudio = false;
+let recordingSign     = '';
+let collectedClips    = [];
+const TARGET_CLIPS    = 30;
 
 // ── MEDIAPIPE GLOBALS ─────────────────────────────────────────────────────────
 const Holistic         = window.Holistic;
@@ -137,46 +104,30 @@ const HAND_CONNECTIONS = window.HAND_CONNECTIONS;
 if (!Holistic || !Camera) {
     statusText.innerText = 'Error: MediaPipe not loaded!';
     backendStatus.className = 'dot red';
-    console.error('Critical: MediaPipe globals missing.');
 }
 
-// ── MEDIAPIPE INIT ────────────────────────────────────────────────────────────
 const holistic = new Holistic({
     locateFile: (file) => `./node_modules/@mediapipe/holistic/${file}`,
 });
 holistic.setOptions({ modelComplexity: 1, smoothLandmarks: true,
                       minDetectionConfidence: 0.5, minTrackingConfidence: 0.5 });
 
-// ── LANDMARK EXTRACTION ───────────────────────────────────────────────────────
-// Must match collect_data.py extract_keypoints() exactly → 1662 floats
+// Must match collect_data.py exactly
 function extractLandmarks(results) {
-    const pose = results.poseLandmarks
-        ? results.poseLandmarks.flatMap(r => [r.x, r.y, r.z, r.visibility])
-        : new Array(132).fill(0);
-    const face = results.faceLandmarks
-        ? results.faceLandmarks.flatMap(r => [r.x, r.y, r.z])
-        : new Array(1404).fill(0);
-    const lh = results.leftHandLandmarks
-        ? results.leftHandLandmarks.flatMap(r => [r.x, r.y, r.z])
-        : new Array(63).fill(0);
-    const rh = results.rightHandLandmarks
-        ? results.rightHandLandmarks.flatMap(r => [r.x, r.y, r.z])
-        : new Array(63).fill(0);
+    const pose = results.poseLandmarks ? results.poseLandmarks.flatMap(r => [r.x, r.y, r.z, r.visibility]) : new Array(132).fill(0);
+    const face = results.faceLandmarks ? results.faceLandmarks.flatMap(r => [r.x, r.y, r.z])       : new Array(1404).fill(0);
+    const lh   = results.leftHandLandmarks ? results.leftHandLandmarks.flatMap(r => [r.x, r.y, r.z]) : new Array(63).fill(0);
+    const rh   = results.rightHandLandmarks ? results.rightHandLandmarks.flatMap(r => [r.x, r.y, r.z]) : new Array(63).fill(0);
     return [...pose, ...face, ...lh, ...rh];
 }
 
-// ── DYNAMIC GESTURE BAR BUILDER ───────────────────────────────────────────────
-// Called once after fetching /status. Rebuilds bars to match actual model output.
 function buildGestureBars(actions) {
     gestureList.innerHTML = '';
     actions.forEach((action, i) => {
-        const info  = SIGN_DICT[action] || { display: action, emoji: '❓' };
+        const info  = getSignInfo(action);
         const color = COLOR_PALETTE[i % COLOR_PALETTE.length];
-
         const row = document.createElement('div');
-        row.className = 'gesture-row';
-        row.id        = `prob_${action}`;
-        row.dataset.color = color;
+        row.className = 'gesture-row'; row.id = `prob_${action}`; row.dataset.color = color;
         row.innerHTML = `
             <div class="g-name">${info.emoji} ${info.display}</div>
             <div class="g-bar-wrap"><div class="g-bar" id="bar_${action}" style="background:linear-gradient(90deg,${color},${color}99)"></div></div>
@@ -191,102 +142,130 @@ async function runInference() {
     if (sequence.length < 30 || currentActions.length === 0) return;
     try {
         const res = await fetch(`${BACKEND_URL}/predict`, {
-            method:  'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body:    JSON.stringify({ sequence }),
+            method: 'POST', headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ sequence }),
         });
-        if (res.ok) {
-            updateUI(await res.json());
-            setBackendStatus(true);
-        } else {
-            setBackendStatus(false, 'API Error');
-        }
-    } catch {
-        setBackendStatus(false, 'Backend Offline');
-    }
+        if (res.ok) { updateUI(await res.json()); setBackendStatus(true); }
+        else { setBackendStatus(false, 'API Error'); }
+    } catch { setBackendStatus(false, 'Backend Offline'); }
 }
 
 // ── UI UPDATE ─────────────────────────────────────────────────────────────────
 function updateUI(data) {
     const { action, confidence, probabilities } = data;
-    const pct  = Math.round(confidence * 100);
-    const idx  = currentActions.indexOf(action);
+    const pct   = Math.round(confidence * 100);
+    const idx   = currentActions.indexOf(action);
     const color = COLOR_PALETTE[idx >= 0 ? idx % COLOR_PALETTE.length : 0];
-    const info = SIGN_DICT[action] || { display: action, emoji: '❓', meaning: 'Unknown sign' };
+    const info  = getSignInfo(action);
 
-    // --- Detection card ---
     gestureResult.innerText = info.display;
     signEmoji.innerText     = info.emoji;
     signMeaning.innerText   = info.meaning;
 
-    // --- Video overlay ---
-    overlaySign.innerText           = `${info.emoji}  ${info.display}`;
-    overlaySign.style.color         = color;
-    overlaySign.style.borderColor   = color + '55';
+    overlaySign.innerText         = `${info.emoji}  ${info.display}`;
+    overlaySign.style.color       = color;
+    overlaySign.style.borderColor = color + '55';
 
-    // --- Confidence bar ---
-    confidenceBar.style.width          = `${pct}%`;
-    confidenceBar.style.background     = `linear-gradient(90deg, ${color}, ${color}aa)`;
-    confidenceBar.style.boxShadow      = `0 0 10px ${color}66`;
-    confidenceVal.innerText            = `${pct}%`;
-    confidenceVal.style.color          = color;
+    confidenceBar.style.width      = `${pct}%`;
+    confidenceBar.style.background = `linear-gradient(90deg, ${color}, ${color}aa)`;
+    confidenceBar.style.boxShadow  = `0 0 10px ${color}66`;
+    confidenceVal.innerText        = `${pct}%`;
+    confidenceVal.style.color      = color;
 
-    // --- Per-gesture bars ---
-    if (probabilities) updateProbBars(probabilities, action);
+    if (probabilities) {
+        currentActions.forEach(act => {
+            const pctAct = Math.round((probabilities[act] || 0) * 100);
+            const bar = document.getElementById(`bar_${act}`);
+            const pctEl = document.getElementById(`pct_${act}`);
+            const row = document.getElementById(`prob_${act}`);
+            if (bar) bar.style.width = `${pctAct}%`;
+            if (pctEl) pctEl.innerText = `${pctAct}%`;
+            if (row) {
+                const active = act === action;
+                row.style.borderColor = active ? (row.dataset.color + '44') : 'transparent';
+                row.style.background  = active ? (row.dataset.color + '11') : 'rgba(255,255,255,0.02)';
+                if (pctEl) pctEl.style.color = active ? row.dataset.color : '#475569';
+            }
+        });
+    }
 
-    // --- Translation + History (high-confidence only) ---
-    if (confidence > 0.7) {
+    if (confidence > 0.7 && action !== lastAddedAction) {
+        lastAddedAction = action;
         addToLog(action, pct, info, color);
-        addToTranslation(action, info, color);
+        handleTranslation(action, info, color);
     }
 }
 
-function updateProbBars(probs, topAction) {
-    currentActions.forEach(act => {
-        const pct   = Math.round((probs[act] || 0) * 100);
-        const bar   = document.getElementById(`bar_${act}`);
-        const pctEl = document.getElementById(`pct_${act}`);
-        const row   = document.getElementById(`prob_${act}`);
-        if (bar)   bar.style.width    = `${pct}%`;
-        if (pctEl) pctEl.innerText    = `${pct}%`;
-        if (row) {
-            const active = act === topAction;
-            row.style.borderColor     = active ? (row.dataset.color + '44') : 'transparent';
-            row.style.background      = active ? (row.dataset.color + '11') : 'rgba(255,255,255,0.02)';
-            if (pctEl) pctEl.style.color = active ? row.dataset.color : '#475569';
+// ── TRANSLATION LOGIC (Handles Words + Letters A-Z) ───────────────────────────
+function handleTranslation(action, info, color) {
+    const isLetter = action.length === 1 && action.match(/[a-z]/i);
+
+    // Initial placeholder clear
+    if (translationBox.innerText === 'Your sentence will appear here...') {
+        translationBox.innerText = '';
+        wordChips.innerHTML = '';
+    }
+
+    if (action === 'space') {
+        translationBox.innerText += ' ';
+        isSpellingWord = false;
+        return;
+    }
+
+    if (action === 'backspace') {
+        const currentText = translationBox.innerText;
+        translationBox.innerText = currentText.slice(0, -1);
+        // Clean up last chip if spelling word gets fully deleted
+        const lastChip = wordChips.lastChild;
+        if (lastChip && lastChip.innerText.includes('🔠')) {
+            lastChip.innerText = lastChip.innerText.slice(0, -1);
+            if (lastChip.innerText === '🔠 ') wordChips.removeChild(lastChip);
         }
-    });
+        return;
+    }
+
+    if (isLetter) {
+        translationBox.innerText += info.display.toUpperCase();
+        
+        if (!isSpellingWord || wordChips.children.length === 0) {
+            // Start a new spelt word chip
+            const chip = document.createElement('span');
+            chip.className = 'word-chip';
+            chip.innerText = `🔠 ${info.display.toUpperCase()}`;
+            chip.style.cssText = `background:${color}18; color:${color}; border:1px solid ${color}44;`;
+            wordChips.appendChild(chip);
+            isSpellingWord = true;
+        } else {
+            // Append to existing spelt word chip
+            const lastChip = wordChips.lastChild;
+            lastChip.innerText += info.display.toUpperCase();
+        }
+    } else {
+        // Normal ASL Word
+        if (translationBox.innerText.length > 0 && !translationBox.innerText.endsWith(' ')) {
+            translationBox.innerText += ' ';
+        }
+        translationBox.innerText += info.display;
+        
+        const chip = document.createElement('span');
+        chip.className = 'word-chip';
+        chip.innerText = `${info.emoji} ${info.display}`;
+        chip.style.cssText = `background:${color}18; color:${color}; border:1px solid ${color}44;`;
+        wordChips.appendChild(chip);
+        
+        isSpellingWord = false;
+    }
+
+    // Scroll newest chips into view
+    const last = wordChips.lastChild;
+    if (last) last.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
 }
 
-// ── TRANSLATION ───────────────────────────────────────────────────────────────
-function addToTranslation(action, info, color) {
-    if (action === lastAddedWord) return;
-    lastAddedWord = action;
-
-    // Append word to text box
-    const current = translationBox.innerText === 'Your sentence will appear here...'
-        ? '' : (translationBox.innerText + ' ');
-    translationBox.innerText = current + info.display;
-
-    // Coloured chip
-    const chip = document.createElement('span');
-    chip.className  = 'word-chip';
-    chip.innerText  = `${info.emoji} ${info.display}`;
-    chip.style.cssText = `background:${color}18; color:${color}; border:1px solid ${color}44;`;
-    wordChips.appendChild(chip);
-    chip.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
-}
-
-// ── HISTORY LOG ───────────────────────────────────────────────────────────────
 function addToLog(action, pct, info, color) {
-    if (inferenceLog.firstChild && inferenceLog.firstChild.dataset.action === action) return;
-
     logEmpty.style.display = 'none';
     const time = new Date().toLocaleTimeString('en', { hour12: false });
-
     const li = document.createElement('li');
     li.className  = 'log-item';
-    li.dataset.action = action;
     li.style.borderLeftColor = color;
     li.innerHTML = `
         <span class="log-sign">${info.emoji} ${info.display}</span>
@@ -297,118 +276,160 @@ function addToLog(action, pct, info, color) {
     while (inferenceLog.children.length > 10) inferenceLog.removeChild(inferenceLog.lastChild);
 }
 
-// ── BACKEND STATUS ────────────────────────────────────────────────────────────
 function setBackendStatus(online, msg = 'Backend Online') {
     backendStatus.className = `dot ${online ? 'green' : 'red'}`;
     statusText.innerText    = msg;
 }
 
 function updateGpuBadge(provider) {
-    if (!provider) {
-        gpuLabel.innerText = 'CPU Mode';
-        gpuBadge.classList.add('gpu-cpu');
-        return;
-    }
-    if (provider.includes('Dml')) {
-        gpuLabel.innerText = 'GPU (DirectML)';
-        gpuBadge.classList.add('gpu-active');
-    } else if (provider.includes('CUDA')) {
-        gpuLabel.innerText = 'GPU (CUDA)';
-        gpuBadge.classList.add('gpu-active');
+    if (!provider) { gpuLabel.innerText = 'CPU Mode'; gpuBadge.className = 'gpu-badge gpu-cpu'; return; }
+    if (provider.includes('Dml') || provider.includes('CUDA')) {
+        gpuLabel.innerText = provider.includes('Dml') ? 'GPU (DirectML)' : 'GPU (CUDA)';
+        gpuBadge.className = 'gpu-badge gpu-active';
     } else {
         gpuLabel.innerText = 'CPU Mode';
-        gpuBadge.classList.add('gpu-cpu');
+        gpuBadge.className = 'gpu-badge gpu-cpu';
     }
 }
 
-// ── CLEAR ─────────────────────────────────────────────────────────────────────
 clearBtn.addEventListener('click', () => {
-    lastAddedWord = null;
+    lastAddedAction = null;
+    isSpellingWord  = false;
     translationBox.innerHTML = '<span class="translation-placeholder">Your sentence will appear here...</span>';
     wordChips.innerHTML = '';
 });
 
-// ── ON RESULTS (MediaPipe callback) ───────────────────────────────────────────
 holistic.onResults(function onResults(results) {
     if (loadingOverlay.style.opacity !== '0') {
         loadingOverlay.style.opacity = '0';
         setTimeout(() => { loadingOverlay.style.display = 'none'; }, 500);
     }
-
     canvasCtx.save();
     canvasCtx.clearRect(0, 0, canvasElement.width, canvasElement.height);
     canvasCtx.drawImage(results.image, 0, 0, canvasElement.width, canvasElement.height);
-
     if (drawConnectors && drawLandmarks) {
-        drawConnectors(canvasCtx, results.poseLandmarks, POSE_CONNECTIONS,
-            { color: 'rgba(255,255,255,0.12)', lineWidth: 2 });
-        drawLandmarks(canvasCtx, results.poseLandmarks,
-            { color: '#38bdf8', lineWidth: 1, radius: 2 });
-        drawConnectors(canvasCtx, results.leftHandLandmarks, HAND_CONNECTIONS,
-            { color: 'rgba(56,189,248,0.7)', lineWidth: 2 });
-        drawLandmarks(canvasCtx, results.leftHandLandmarks,
-            { color: '#ffffff', lineWidth: 1, radius: 3 });
-        drawConnectors(canvasCtx, results.rightHandLandmarks, HAND_CONNECTIONS,
-            { color: 'rgba(244,114,182,0.7)', lineWidth: 2 });
-        drawLandmarks(canvasCtx, results.rightHandLandmarks,
-            { color: '#f472b6', lineWidth: 1, radius: 3 });
+        drawConnectors(canvasCtx, results.poseLandmarks, POSE_CONNECTIONS, { color: 'rgba(255,255,255,0.12)', lineWidth: 2 });
+        drawLandmarks(canvasCtx, results.poseLandmarks, { color: '#38bdf8', lineWidth: 1, radius: 2 });
+        drawConnectors(canvasCtx, results.leftHandLandmarks, HAND_CONNECTIONS, { color: 'rgba(56,189,248,0.7)', lineWidth: 2 });
+        drawLandmarks(canvasCtx, results.leftHandLandmarks, { color: '#ffffff', lineWidth: 1, radius: 3 });
+        drawConnectors(canvasCtx, results.rightHandLandmarks, HAND_CONNECTIONS, { color: 'rgba(244,114,182,0.7)', lineWidth: 2 });
+        drawLandmarks(canvasCtx, results.rightHandLandmarks, { color: '#f472b6', lineWidth: 1, radius: 3 });
     }
     canvasCtx.restore();
 
     sequence.push(extractLandmarks(results));
+    
+    // --- STUDIO MODE ---
+    if (isRecordingStudio) {
+        if (sequence.length > 30) sequence.shift();
+        bufferVal.innerText = sequence.length;
+        
+        if (sequence.length === 30) {
+            collectedClips.push([...sequence]);
+            sequence = []; // empty the buffer to start fresh for the next clip
+            
+            // Visual feedback
+            const pct = Math.round((collectedClips.length / TARGET_CLIPS) * 100);
+            recordProgress.style.width = `${pct}%`;
+            recordStatus.innerText = `Captured ${collectedClips.length} / ${TARGET_CLIPS} clips...`;
+            videoElement.style.border = '5px solid var(--green)';
+            setTimeout(() => { videoElement.style.border = 'none'; }, 150);
+
+            if (collectedClips.length >= TARGET_CLIPS) {
+                finishRecording();
+            }
+        }
+        return; // skip inference while recording
+    }
+    
+    // --- INFERENCE MODE ---
     if (sequence.length > 30) sequence.shift();
     bufferVal.innerText = sequence.length;
-
     if (sequence.length === 30 && frameCount % 5 === 0) runInference();
 
     frameCount++;
     const now = Date.now();
-    if (now - lastFpsUpdate > 1000) {
-        fpsVal.innerText = frameCount;
-        frameCount       = 0;
-        lastFpsUpdate    = now;
-    }
+    if (now - lastFpsUpdate > 1000) { fpsVal.innerText = frameCount; frameCount = 0; lastFpsUpdate = now; }
 });
 
-// ── CAMERA ────────────────────────────────────────────────────────────────────
 try {
     const camera = new Camera(videoElement, {
-        onFrame: async () => {
-            try { await holistic.send({ image: videoElement }); }
-            catch (err) { console.error('Holistic send error:', err); }
-        },
+        onFrame: async () => { try { await holistic.send({ image: videoElement }); } catch(err){} },
         width: 640, height: 480,
     });
-    camera.start().catch(err => {
-        statusText.innerText = 'Camera Access Denied';
-        backendStatus.className = 'dot red';
-        console.error('Camera error:', err);
-    });
-} catch (err) {
-    statusText.innerText = 'Camera Hardware Failure';
-    console.error('Camera init error:', err);
+    camera.start().catch(() => { statusText.innerText = 'Camera Access Denied'; backendStatus.className = 'dot red'; });
+} catch (err) { statusText.innerText = 'Camera Hardware Failure'; }
+
+// ── STUDIO RECORDING LOGIC ────────────────────────────────────────────────────
+studioBtn.addEventListener('click', () => {
+    studioOverlay.style.display = 'flex';
+});
+closeStudioBtn.addEventListener('click', () => {
+    if (isRecordingStudio) return alert('Please wait for recording to finish!');
+    studioOverlay.style.display = 'none';
+});
+recordBtn.addEventListener('click', () => {
+    recordingSign = studioSignSelect.value;
+    if (!recordingSign) return alert('Select a sign first!');
+    
+    isRecordingStudio = true;
+    collectedClips = [];
+    sequence = [];
+    recordBtn.innerText = '⏺ Recording...';
+    recordBtn.style.background = 'var(--red)';
+    recordProgress.style.width = '0%';
+    recordStatus.innerText = `Recording 0 / 30... Keep signing!`;
+});
+
+async function finishRecording() {
+    isRecordingStudio = false;
+    recordBtn.innerText = '⌛ Saving...';
+    recordBtn.style.background = 'var(--amber)';
+    recordStatus.innerText = 'Uploading to backend...';
+
+    try {
+        const res = await fetch(`${BACKEND_URL}/collect`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ action: recordingSign, sequences: collectedClips })
+        });
+        const data = await res.json();
+        if (data.status === 'success') {
+            recordStatus.innerText = `Saved successfully! Total clips for this sign: ${data.total_for_action}`;
+        }
+    } catch (err) {
+        recordStatus.innerText = 'Error saving data.';
+    }
+
+    recordBtn.innerText = '⏺ Start Recording';
+    recordBtn.style.background = 'var(--green)';
 }
 
-// ── BACKEND HEALTH + DYNAMIC ACTION LOAD ──────────────────────────────────────
 async function checkBackend() {
     try {
         const res  = await fetch(`${BACKEND_URL}/`);
         const data = await res.json();
-
-        setBackendStatus(data.status === 'online',
-            data.model_ready ? 'Backend Online' : 'Model Not Ready — Run convert_model.py');
+        setBackendStatus(data.status === 'online', data.model_ready ? 'Backend Online' : 'Model Not Ready');
         updateGpuBadge(data.gpu_provider);
-
+        
+        // Populate gesture bars for trained actions
         if (data.actions && data.actions.length > 0 && currentActions.length === 0) {
             currentActions = data.actions;
             buildGestureBars(currentActions);
-            console.log(`[SignFlow] Loaded ${currentActions.length} actions:`, currentActions);
         }
-    } catch {
-        setBackendStatus(false, 'Backend Offline');
-        gpuLabel.innerText = 'Offline';
-    }
+
+        // Populate dropdown in Studio for all possible actions
+        if (data.all_actions && studioSignSelect.options.length <= 1) {
+            studioSignSelect.innerHTML = '<option value="">-- Choose Sign --</option>';
+            data.all_actions.forEach(a => {
+                const opt = document.createElement('option');
+                opt.value = a; opt.innerText = getSignInfo(a).display;
+                studioSignSelect.appendChild(opt);
+            });
+        }
+
+    } catch { setBackendStatus(false, 'Backend Offline'); gpuLabel.innerText = 'Offline'; }
 }
 
 checkBackend();
-setInterval(checkBackend, 10000);  // re-check every 10s
+setInterval(checkBackend, 10000);

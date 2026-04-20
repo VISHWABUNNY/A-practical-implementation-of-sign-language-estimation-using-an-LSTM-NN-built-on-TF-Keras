@@ -1,31 +1,48 @@
 """
 SignFlow AI — Central Configuration
 ====================================
-ONE place to control everything. Change ACTIONS here, then:
-  1.  python collect_data.py   ← collect webcam samples for new signs
-  2.  python train_model.py    ← retrain LSTM + convert to ONNX
-  3.  Restart backend          ← picks up new model automatically
+ONE place to control everything.
 """
 import os
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 
-# ── Signs the system will recognise ──────────────────────────────────────────
-# Pre-trained model supports the first 3. Add more, collect data, then retrain.
-ACTIONS = [
-    # ── Original (pre-trained) ──────────────────────
-    'hello',     'thanks',   'iloveyou',
-    # ── Basic responses ─────────────────────────────
-    'yes',       'no',
-    # ── Politeness ──────────────────────────────────
-    'please',    'sorry',
-    # ── Key commands ────────────────────────────────
-    'help',      'stop',
-    # ── States ──────────────────────────────────────
-    'good',      'bad',
-    # ── Conversational ──────────────────────────────
-    'more',      'again',    'fine',      'name',
+# ── 1. The ASL Alphabet (Fingerspelling) ─────────────────────────────────────
+ALPHABET = [
+    'a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i', 'j', 'k', 'l', 'm', 
+    'n', 'o', 'p', 'q', 'r', 's', 't', 'u', 'v', 'w', 'x', 'y', 'z',
+    'space', 'backspace' # Controls for spelling
 ]
+
+# ── 2. Common ASL Dictionary (100+ Words) ────────────────────────────────────
+COMMON_WORDS = [
+    # ── Provided pre-trained originally
+    'hello', 'thanks', 'iloveyou',
+    # ── Questions
+    'who', 'what', 'where', 'when', 'why', 'how',
+    # ── People & Family
+    'mother', 'father', 'brother', 'sister', 'baby', 'friend', 'man', 'woman',
+    # ── Pronouns
+    'me', 'you', 'he', 'she', 'we', 'they', 'my', 'your',
+    # ── Time
+    'now', 'later', 'today', 'tomorrow', 'yesterday', 'morning', 'night', 'day',
+    # ── Feelings & States
+    'happy', 'sad', 'angry', 'tired', 'hungry', 'thirsty', 'sick', 'excited',
+    'good', 'bad', 'fine',
+    # ── Actions (Verbs)
+    'eat', 'drink', 'sleep', 'walk', 'run', 'read', 'write', 'learn', 'play',
+    'work', 'help', 'stop', 'go', 'want', 'need', 'more', 'again',
+    # ── Objects & Places
+    'food', 'water', 'bathroom', 'home', 'school', 'store', 'car', 'book', 'phone',
+    # ── Adjectives
+    'big', 'small', 'hot', 'cold', 'clean', 'dirty',
+    # ── Politeness / Responses
+    'yes', 'no', 'please', 'sorry', 'name'
+]
+
+# ── COMBINED ACTIONS LIST ────────────────────────────────────────────────────
+# This is the master list of all signs the system is programmed to handle.
+ACTIONS = ALPHABET + COMMON_WORDS
 
 # ── Sequence parameters (MUST match whatever the model was trained on) ────────
 SEQUENCE_LENGTH = 30   # frames per prediction window

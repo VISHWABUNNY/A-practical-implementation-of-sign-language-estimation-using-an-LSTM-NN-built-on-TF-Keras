@@ -24,6 +24,7 @@
             </div>
         </div>
         <div class="status-cluster">
+            <button id="studio_btn" class="clear-btn" style="border-color:var(--cyan); color:var(--cyan)">🎬 Training Studio</button>
             <div class="status-pill">
                 <span class="dot gray" id="backend_status"></span>
                 <span id="status_text">Connecting...</span>
@@ -42,7 +43,27 @@
 
         <!-- Camera Column -->
         <section class="camera-section">
-            <div class="camera-card glass">
+            <div class="camera-card glass" style="position: relative;">
+                
+                <!-- ── TRAINING STUDIO OVERLAY ── -->
+                <div id="studio_overlay" style="display:none; position:absolute; inset:0; background:rgba(7,12,24,0.95); z-index:20; backdrop-filter:blur(8px); padding:20px; flex-direction:column; align-items:center; justify-content:center; gap:20px;">
+                    <h2 style="color:var(--cyan); font-weight:800;">DATA COLLECTION STUDIO</h2>
+                    <p style="color:var(--text-2); font-size:12px; text-align:center; max-width:80%">Select a sign to train. The camera will record 30 clips (30 frames each). Do the sign repeatedly while recording.</p>
+                    
+                    <select id="studio_sign_select" style="padding:10px; border-radius:8px; background:var(--bg-dark); color:var(--text-1); border:1px solid var(--glass-border); width:200px; font-size:14px;">
+                        <option value="">Loading signs...</option>
+                    </select>
+
+                    <button id="record_btn" class="clear-btn" style="background:var(--green); color:#000; border:none; padding:10px 20px; font-size:14px; border-radius:99px;">⏺ Start Recording</button>
+                    
+                    <div style="width:80%; height:8px; background:rgba(255,255,255,0.1); border-radius:4px; overflow:hidden;">
+                        <div id="record_progress" style="height:100%; width:0%; background:var(--cyan); transition:width 0.2s;"></div>
+                    </div>
+                    <div id="record_status" style="font-size:12px; color:var(--text-3); font-weight:700; font-variant-numeric:tabular-nums;">Idle</div>
+                    
+                    <button id="close_studio_btn" class="clear-btn" style="position:absolute; top:20px; right:20px;">✕ Close</button>
+                </div>
+
                 <div class="camera-label">📷 Live Camera Feed</div>
                 <div class="video-wrapper">
                     <video id="input_video" autoplay playsinline></video>

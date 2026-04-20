@@ -68,6 +68,7 @@ async def status():
         "model_ready":  session is not None,
         "gpu_provider": gpu_provider,
         "actions":      current_actions,
+        "all_actions":  list(ACTIONS),
         "error":        load_error,
     }
 
@@ -99,6 +100,27 @@ async def predict(request: PredictionRequest):
         "probabilities": {current_actions[i]: float(result[i]) for i in range(len(current_actions))},
     }
 
+
+class CollectRequest(BaseModel):
+    action: str
+    sequences: List[List[List[float]]]  # Multiple sequences of 30 frames of 1662 landmarks
+
+@app.post("/collect")
+async def collect_data(req: CollectRequest):
+    action_path = os.path.join(os.path.dirname(__file__), 'data', req.action)
+    os.makedirs(action_path, exist_ok=True)
+    
+    existing = len([f for f in os.listdir(action_path) if f.endswith('.npy')])
+    
+    saved_count = 0
+    for seq in req.sequences:
+        arr = np.array(seq, dtype=np.float32)
+        if arr.shape == (30, 1662):
+            fname = os.path.join(action_path, f"{(existing + saved_count):04d}.npy")
+            np.save(fname, arr)
+            saved_count += 1
+            
+    return {"status": "success", "saved": saved_count, "total_for_action": existing + saved_count}
 
 # ── Entry point ───────────────────────────────────────────────────────────────
 if __name__ == "__main__":
