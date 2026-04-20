@@ -8,24 +8,34 @@ param (
 $RootPath = Get-Location
 
 function Setup-Environment {
-    Write-Host "--- Discovering Python ---" -ForegroundColor Cyan
+    Write-Host "--- Discovering Python 3.12 (required for TensorFlow) ---" -ForegroundColor Cyan
     $PythonCmd = ""
-    
-    if (Get-Command "python" -ErrorAction SilentlyContinue) {
-        $testPos = (python --version 2>&1)
-        if ($testPos -notmatch "Python was not found") { $PythonCmd = "python" }
+
+    # TensorFlow requires Python <=3.12. Prefer py -3.12 explicitly.
+    if (Get-Command "py" -ErrorAction SilentlyContinue) {
+        $test312 = (py -3.12 --version 2>&1)
+        if ($test312 -match "Python 3\.12") {
+            $PythonCmd = "py -3.12"
+        }
     }
-    
-    if ($PythonCmd -eq "" -and (Get-Command "py" -ErrorAction SilentlyContinue)) {
-        $PythonCmd = "py"
+
+    # Fallback: check if default python is <=3.12
+    if ($PythonCmd -eq "") {
+        if (Get-Command "python" -ErrorAction SilentlyContinue) {
+            $ver = (python --version 2>&1) -replace 'Python ', ''
+            $major = [int]($ver.Split('.')[0])
+            $minor = [int]($ver.Split('.')[1])
+            if ($major -eq 3 -and $minor -le 12) { $PythonCmd = "python" }
+        }
     }
 
     if ($PythonCmd -eq "") {
-        Write-Host "Error: Python was not found on your system." -ForegroundColor Red
-        Write-Host "Please install Python from https://www.python.org/ and ensure it's in your PATH." -ForegroundColor Yellow
+        Write-Host "Error: Python 3.12 or earlier not found." -ForegroundColor Red
+        Write-Host "TensorFlow requires Python <=3.12. Run: py install 3.12" -ForegroundColor Yellow
+        Write-Host "Then re-run: .\manage.ps1 setup" -ForegroundColor Yellow
         return
     }
-    
+
     Write-Host "Using Python command: $PythonCmd" -ForegroundColor Green
 
     Write-Host "--- Setting up Backend ---" -ForegroundColor Cyan
@@ -55,6 +65,8 @@ function Setup-Environment {
 function Run-App {
     $BackendVenv = "$RootPath\backend\venv"
     $FrontendModules = "$RootPath\frontend\node_modules"
+    # Use py -3.12 for running if available, else fall back
+    $PythonExe = "$BackendVenv\Scripts\python.exe"
 
     if (-not (Test-Path $BackendVenv)) {
         Write-Host "Error: Backend virtual environment not found in $BackendVenv" -ForegroundColor Red
