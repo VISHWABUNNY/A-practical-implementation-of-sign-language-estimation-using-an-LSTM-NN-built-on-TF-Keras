@@ -1,7 +1,22 @@
+# SignFlow AI — Backend Requirements
+# Install with: python -m pip install -r requirements.txt
+
+# ── API Server ───────────────────────────────────────────
 fastapi
 uvicorn
-tensorflow
-numpy
-mediapipe
 python-multipart
-cors
+
+# ── Core ML ──────────────────────────────────────────────
+tensorflow           # for model training (GPU via normal TF on Linux/WSL2)
+numpy
+
+# ── GPU Inference (Windows DirectX 12) ───────────────────
+onnxruntime-directml # replaces plain onnxruntime; auto-falls back to CPU
+tf2onnx              # converts .h5 to .onnx
+
+# ── Data Collection (webcam + landmark extraction) ────────
+opencv-python
+mediapipe
+
+# ── Training utilities ────────────────────────────────────
+scikit-learn         # train/test split

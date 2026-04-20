@@ -13,5 +13,10 @@
   "type": "commonjs",
   "devDependencies": {
     "electron": "^41.2.1"
+  },
+  "dependencies": {
+    "@mediapipe/camera_utils": "^0.3.1675466862",
+    "@mediapipe/drawing_utils": "^0.3.1675466124",
+    "@mediapipe/holistic": "^0.5.1675471629"
   }
 }

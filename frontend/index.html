@@ -4,66 +4,108 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>SignFlow AI Desktop</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="style.css">
-    <!-- MediaPipe Holistic - Versioned for Stability -->
-    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/holistic@0.5.1675929862/holistic.js" crossorigin="anonymous"></script>
-    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils@0.4.1675466862/camera_utils.js" crossorigin="anonymous"></script>
-    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/drawing_utils@0.3.1675466124/drawing_utils.js" crossorigin="anonymous"></script>
+    <!-- MediaPipe — loaded locally (no internet required) -->
+    <script src="./node_modules/@mediapipe/holistic/holistic.js"></script>
+    <script src="./node_modules/@mediapipe/camera_utils/camera_utils.js"></script>
+    <script src="./node_modules/@mediapipe/drawing_utils/drawing_utils.js"></script>
 </head>
 <body>
-    <div class="app-container">
-        <!-- Main Workspace -->
-        <main class="main-workspace">
-            <div class="camera-hub">
-                <div class="video-container glass">
+<div class="app-container">
+
+    <!-- ── TOP BAR ──────────────────────────────────────────────── -->
+    <header class="topbar">
+        <div class="brand">
+            <div class="brand-icon">🤟</div>
+            <div class="brand-text">
+                <h1>SignFlow <span class="highlight">AI</span></h1>
+                <p>Real-time Sign Language Recognition</p>
+            </div>
+        </div>
+        <div class="status-cluster">
+            <div class="status-pill">
+                <span class="dot gray" id="backend_status"></span>
+                <span id="status_text">Connecting...</span>
+            </div>
+            <div class="gpu-badge" id="gpu_badge" title="Inference device">
+                <span class="gpu-icon">⚡</span>
+                <span id="gpu_label">Detecting...</span>
+            </div>
+            <div class="stat-chip">FPS <span id="fps_val">0</span></div>
+            <div class="stat-chip">Buffer <span id="buffer_val">0</span>/30</div>
+        </div>
+    </header>
+
+    <!-- ── MAIN WORKSPACE ────────────────────────────────────────── -->
+    <main class="main-workspace">
+
+        <!-- Camera Column -->
+        <section class="camera-section">
+            <div class="camera-card glass">
+                <div class="camera-label">📷 Live Camera Feed</div>
+                <div class="video-wrapper">
                     <video id="input_video" autoplay playsinline></video>
                     <canvas id="output_canvas"></canvas>
                     <div id="loading_overlay">
                         <div class="spinner"></div>
                         <p>Initialising Camera Hub...</p>
                     </div>
+                    <!-- Sign badge overlaid on video -->
+                    <div class="sign-overlay" id="sign_overlay">—</div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Analysis Column -->
+        <aside class="analysis-panel">
+
+            <!-- Current Detection -->
+            <div class="card glass detected-card">
+                <div class="card-title">🔍 Detected Sign</div>
+                <div class="sign-emoji" id="sign_emoji">👋</div>
+                <div class="detected-sign" id="gesture_result">Waiting...</div>
+                <div class="sign-meaning" id="sign_meaning">Show a sign gesture to the camera</div>
+                <div class="confidence-row">
+                    <span class="conf-label">Confidence</span>
+                    <span class="conf-value" id="confidence_val">0%</span>
+                </div>
+                <div class="progress-bar-container">
+                    <div id="confidence_bar" class="progress-bar" style="width:0%"></div>
                 </div>
             </div>
 
-            <!-- Stats & Control Panel -->
-            <aside class="control-panel glass">
-                <header class="panel-header">
-                    <h1>SignFlow <span class="highlight">AI</span></h1>
-                    <div class="status-indicator">
-                        <span id="backend_status" class="dot gray"></span>
-                        <span id="status_text">Checking Backend...</span>
-                    </div>
-                </header>
-
-                <div class="inference-core">
-                    <section class="prediction-card glass">
-                        <h3>Detection</h3>
-                        <div id="gesture_result" class="result">Waiting...</div>
-                        <div class="progress-bar-container">
-                            <div id="confidence_bar" class="progress-bar" style="width: 0%"></div>
-                        </div>
-                        <div id="confidence_val" class="sub-text">0% Confidence</div>
-                    </section>
-
-                    <section class="log-panel">
-                        <h3>Inference History</h3>
-                        <ul id="inference_log">
-                            <!-- Logs will appear here -->
-                        </ul>
-                    </section>
+            <!-- All Gesture Probabilities — built dynamically by renderer.js -->
+            <div class="card glass">
+                <div class="card-title">📊 All Gesture Probabilities</div>
+                <div id="gesture_list" class="gesture-list">
+                    <div class="gesture-loading">Connecting to backend...</div>
                 </div>
+            </div>
 
-                <footer class="panel-footer">
-                    <div class="system-info">
-                        <span>FPS: <span id="fps_val">0</span></span>
-                        <span>LSTM Buffer: <span id="buffer_val">0</span>/30</span>
-                    </div>
-                </footer>
-            </aside>
-        </main>
-    </div>
+            <!-- Live Translation -->
+            <div class="card glass translation-card">
+                <div class="card-title-row">
+                    <div class="card-title">💬 Live Translation</div>
+                    <button id="clear_btn" class="clear-btn">Clear</button>
+                </div>
+                <div class="translation-box" id="translation_box">
+                    <span class="translation-placeholder">Your sentence will appear here...</span>
+                </div>
+                <div class="word-chips" id="word_chips"></div>
+            </div>
 
-    <!-- Logic -->
-    <script src="renderer.js"></script>
+            <!-- Inference History -->
+            <div class="card glass">
+                <div class="card-title">📜 History</div>
+                <ul id="inference_log" class="log-list"></ul>
+                <div class="log-empty" id="log_empty">No detections yet</div>
+            </div>
+
+        </aside>
+    </main>
+</div>
+
+<script src="renderer.js"></script>
 </body>
 </html>
